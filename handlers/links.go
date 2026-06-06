@@ -211,6 +211,7 @@ func DeleteLinkHandler(w http.ResponseWriter, r *http.Request) {
 
 	http.Redirect(w, r, "/dashboard?success=Link+deleted+successfully", http.StatusSeeOther)
 }
+
 func RedirectHandler(w http.ResponseWriter, r *http.Request) {
 	shortCode := r.PathValue("shortCode")
 
@@ -223,4 +224,36 @@ func RedirectHandler(w http.ResponseWriter, r *http.Request) {
 	database.IncrementClickCount(link.ID)
 
 	http.Redirect(w, r, link.OriginalURL, http.StatusMovedPermanently)
+}
+
+func AnalyticsHandler(w http.ResponseWriter, r *http.Request) {
+	userID := middleware.GetUserID(r)
+	idStr := r.PathValue("id")
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+
+	link, err := database.GetLinkByID(id)
+	if err != nil || link.UserID != userID {
+		render.Template(w, "analytics", &render.Data{
+			User:  &render.UserInfo{ID: userID, Email: middleware.GetUserEmail(r)},
+			Error: "Link not found",
+		})
+		return
+	}
+
+	render.Template(w, "analytics", &render.Data{
+		User: &render.UserInfo{ID: userID, Email: middleware.GetUserEmail(r)},
+		Link: &render.LinkInfo{
+			ID:           link.ID,
+			OriginalURL:  link.OriginalURL,
+			ShortCode:    link.ShortCode,
+			CustomAlias:  link.CustomAlias,
+			ClickCount:   link.ClickCount,
+			LastAccessed: link.LastAccessed,
+			CreatedAt:    link.CreatedAt,
+		},
+	})
 }
