@@ -1,6 +1,6 @@
 # URL Shortener
 
-A simple URL shortener built with Go and SQLite. Shorten long URLs, track click counts, and manage your links.
+A simple URL shortener built with Go and PostgreSQL. Shorten long URLs, track click counts, and manage your links.
 
 ## Features
 
@@ -14,8 +14,23 @@ A simple URL shortener built with Go and SQLite. Shorten long URLs, track click 
 ## Requirements
 
 - Go 1.22 or newer
+- PostgreSQL 14 or newer
 
 ## Quick Start
+
+1. Create a PostgreSQL database:
+
+```bash
+createdb urlshortner
+```
+
+2. Copy and edit the env file:
+
+```bash
+cp .env.example .env
+```
+
+3. Build and run:
 
 ```bash
 go mod tidy
@@ -27,22 +42,20 @@ Open http://localhost:8080 in your browser.
 
 ## Configuration
 
-Set these environment variables before running:
-
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `PORT` | `8080` | HTTP server port |
 | `JWT_SECRET` | `urlshortner-dev-secret-key` | Secret key for signing auth tokens. **Set a random value in production.** |
-| `DB_PATH` | `./urlshortner.db` | Path to the SQLite database file |
+| `DATABASE_URL` | `postgres://postgres:postgres@localhost:5432/urlshortner?sslmode=disable` | PostgreSQL connection string |
 | `COOKIE_SECURE` | `false` | Set to `true` when behind HTTPS |
 
-Copy `.env.example` to `.env` in the project root (auto-loaded on startup):
+The `DATABASE_URL` format is:
 
-```bash
-cp .env.example .env
+```
+postgres://user:password@host:port/database?sslmode=require
 ```
 
-Edit `.env` to set your own `JWT_SECRET`.
+Hosting platforms (Render, Railway, Fly.io, Heroku) provide this as an environment variable automatically. Just connect a PostgreSQL database and the app picks it up.
 
 ## Routes
 
@@ -77,7 +90,7 @@ Edit `.env` to set your own `JWT_SECRET`.
 ```
 main.go           -- Entry point and router
 database/
-  db.go           -- SQLite setup and table creation
+  db.go           -- PostgreSQL setup and table creation
   user.go         -- User queries
   link.go         -- Link queries
 handlers/
@@ -92,14 +105,14 @@ render/
 
 ## Database
 
-SQLite database file (urlshortner.db) is created automatically on first run. Tables:
+Tables are created automatically on first run. Schema:
 
-- **users** -- id, email, password_hash, created_at
-- **links** -- id, user_id, original_url, short_code, custom_alias, click_count, last_accessed, created_at, updated_at
+- **users** -- id (SERIAL), email (TEXT UNIQUE), password_hash (TEXT), created_at (TIMESTAMPTZ)
+- **links** -- id (SERIAL), user_id (FK), original_url (TEXT), short_code (TEXT UNIQUE), custom_alias (TEXT), click_count (INT), last_accessed (TIMESTAMPTZ), created_at (TIMESTAMPTZ), updated_at (TIMESTAMPTZ)
 
 ## Dependencies
 
 - github.com/joho/godotenv -- .env file loading
+- github.com/jackc/pgx/v5 -- PostgreSQL driver
 - github.com/golang-jwt/jwt/v5 -- JWT tokens
 - golang.org/x/crypto -- bcrypt password hashing
-- modernc.org/sqlite -- Pure Go SQLite driver (no CGO required)
