@@ -85,3 +85,11 @@ func DeleteLink(id int64) error {
 	_, err := DB.Exec("DELETE FROM links WHERE id = ?", id)
 	return err
 }
+
+func IncrementClickCount(id int64) error {
+	_, err := DB.Exec(
+		"UPDATE links SET click_count = click_count + 1, last_accessed = ? WHERE id = ?",
+		time.Now().Format(time.RFC3339), id,
+	)
+	return err
+}
