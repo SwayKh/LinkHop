@@ -1,0 +1,19 @@
+# Binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+/target
+
+# Go
+vendor/
+go.work
+go.work.sum
+
+# Project specific
+urlshortner
+urlshortner.db
+.env
