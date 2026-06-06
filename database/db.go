@@ -3,6 +3,7 @@ package database
 import (
 	"database/sql"
 	"log"
+	"os"
 
 	_ "modernc.org/sqlite"
 )
@@ -11,7 +12,11 @@ var DB *sql.DB
 
 func InitDB() {
 	var err error
-	DB, err = sql.Open("sqlite", "./urlshortner.db")
+	dbPath := os.Getenv("DB_PATH")
+	if dbPath == "" {
+		dbPath = "./urlshortner.db"
+	}
+	DB, err = sql.Open("sqlite", dbPath)
 	if err != nil {
 		log.Fatal(err)
 	}
