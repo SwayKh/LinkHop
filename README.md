@@ -32,13 +32,17 @@ Set these environment variables before running:
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `PORT` | `8080` | HTTP server port |
-| `JWT_SECRET` | `urlshortner-dev-secret-key` | Secret key for signing auth tokens |
+| `JWT_SECRET` | `urlshortner-dev-secret-key` | Secret key for signing auth tokens. **Set a random value in production.** |
+| `DB_PATH` | `./urlshortner.db` | Path to the SQLite database file |
+| `COOKIE_SECURE` | `false` | Set to `true` when behind HTTPS |
 
 Create a `.env` file in the project root (auto-loaded on startup):
 
 ```
 PORT=8080
-JWT_SECRET=generate-a-random-string-here
+JWT_SECRET=put-a-random-string-here
+DB_PATH=./urlshortner.db
+COOKIE_SECURE=false
 ```
 
 ## Routes
