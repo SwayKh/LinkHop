@@ -1,0 +1,49 @@
+{{define "title"}}Analytics - URL Shortener{{end}}
+{{define "content"}}
+<div class="max-w-2xl mx-auto mt-10">
+    <h2 class="text-3xl font-bold text-center mb-8">Link Analytics</h2>
+
+    <div class="bg-white shadow-md rounded-lg px-8 pt-6 pb-8 mb-4">
+        <div class="mb-6">
+            <label class="block text-gray-700 text-sm font-bold mb-2">Original URL</label>
+            <p class="text-gray-900 bg-gray-50 p-2 rounded break-all">{{.Link.OriginalURL}}</p>
+        </div>
+
+        <div class="mb-6">
+            <label class="block text-gray-700 text-sm font-bold mb-2">Short URL</label>
+            <p class="text-indigo-600 bg-gray-50 p-2 rounded font-mono">
+                <a href="/{{.Link.ShortCode}}" target="_blank">{{.Link.ShortCode}}</a>
+            </p>
+        </div>
+
+        <div class="grid grid-cols-2 gap-6 mb-6">
+            <div class="bg-indigo-50 p-4 rounded-lg text-center">
+                <p class="text-4xl font-bold text-indigo-600">{{.Link.ClickCount}}</p>
+                <p class="text-sm text-gray-600 mt-1">Total Clicks</p>
+            </div>
+            <div class="bg-green-50 p-4 rounded-lg text-center">
+                <p class="text-sm text-gray-600 mb-1">Last Accessed</p>
+                <p class="text-lg font-semibold text-gray-900">
+                    {{if .Link.LastAccessed}}{{.Link.LastAccessed}}{{else}}Never{{end}}
+                </p>
+            </div>
+        </div>
+
+        <div class="mb-6">
+            <label class="block text-gray-700 text-sm font-bold mb-2">Created At</label>
+            <p class="text-gray-600">{{.Link.CreatedAt}}</p>
+        </div>
+
+        <div class="flex space-x-4">
+            <a href="/links/{{.Link.ID}}/edit"
+                class="flex-1 bg-indigo-600 text-white font-bold py-2 px-4 rounded text-center hover:bg-indigo-700">
+                Edit Link
+            </a>
+            <a href="/dashboard"
+                class="flex-1 bg-gray-300 text-gray-700 font-bold py-2 px-4 rounded text-center hover:bg-gray-400">
+                Back to Dashboard
+            </a>
+        </div>
+    </div>
+</div>
+{{end}}
