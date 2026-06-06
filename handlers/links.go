@@ -211,3 +211,16 @@ func DeleteLinkHandler(w http.ResponseWriter, r *http.Request) {
 
 	http.Redirect(w, r, "/dashboard?success=Link+deleted+successfully", http.StatusSeeOther)
 }
+func RedirectHandler(w http.ResponseWriter, r *http.Request) {
+	shortCode := r.PathValue("shortCode")
+
+	link, err := database.GetLinkByShortCode(shortCode)
+	if err != nil {
+		render.Template(w, "index", &render.Data{Error: "Link not found"})
+		return
+	}
+
+	database.IncrementClickCount(link.ID)
+
+	http.Redirect(w, r, link.OriginalURL, http.StatusMovedPermanently)
+}
