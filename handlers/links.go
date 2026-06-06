@@ -223,7 +223,7 @@ func RedirectHandler(w http.ResponseWriter, r *http.Request) {
 
 	database.IncrementClickCount(link.ID)
 
-	http.Redirect(w, r, link.OriginalURL, http.StatusMovedPermanently)
+	http.Redirect(w, r, link.OriginalURL, http.StatusFound)
 }
 
 func AnalyticsHandler(w http.ResponseWriter, r *http.Request) {
