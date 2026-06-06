@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"os"
 	"strings"
 
 	"urlshortner/database"
@@ -32,7 +33,7 @@ func SignupHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := database.CreateUser(email, string(hash)); err != nil {
-		render.Template(w, "signup", &render.Data{Error: "Email already exists"})
+		render.Template(w, "signup", &render.Data{Error: "Could not create account"})
 		return
 	}
 
@@ -71,12 +72,15 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	secure := os.Getenv("COOKIE_SECURE") == "true"
+
 	http.SetCookie(w, &http.Cookie{
 		Name:     "token",
 		Value:    token,
 		Path:     "/",
 		HttpOnly: true,
-		Secure:   false,
+		Secure:   secure,
+		SameSite: http.SameSiteLaxMode,
 		MaxAge:   86400,
 	})
 
