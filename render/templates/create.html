@@ -1,0 +1,23 @@
+{{define "title"}}Create Link - URL Shortener{{end}}
+{{define "content"}}
+<div class="max-w-lg mx-auto mt-10">
+    <h2 class="text-3xl font-bold text-center mb-8">Create Short Link</h2>
+    <form method="POST" action="/api/links" class="bg-white shadow-md rounded-lg px-8 pt-6 pb-8 mb-4">
+        <div class="mb-4">
+            <label class="block text-gray-700 text-sm font-bold mb-2" for="original_url">Original URL</label>
+            <input type="text" name="original_url" id="original_url" required placeholder="https://example.com/very-long-url"
+                class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+        </div>
+        <div class="mb-6">
+            <label class="block text-gray-700 text-sm font-bold mb-2" for="custom_alias">Custom Alias (optional)</label>
+            <input type="text" name="custom_alias" id="custom_alias" placeholder="my-custom-alias"
+                class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+            <p class="text-xs text-gray-500 mt-1">Leave empty to auto-generate a 6-character code.</p>
+        </div>
+        <button type="submit"
+            class="w-full bg-indigo-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline hover:bg-indigo-700">
+            Create Link
+        </button>
+    </form>
+</div>
+{{end}}
