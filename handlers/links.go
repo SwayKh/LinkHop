@@ -116,3 +116,25 @@ func CreateLinkHandler(w http.ResponseWriter, r *http.Request) {
 
 	http.Redirect(w, r, "/dashboard?success=Link+created+successfully", http.StatusSeeOther)
 }
+func DeleteLinkHandler(w http.ResponseWriter, r *http.Request) {
+	userID := middleware.GetUserID(r)
+	idStr := r.PathValue("id")
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+
+	link, err := database.GetLinkByID(id)
+	if err != nil || link.UserID != userID {
+		http.Redirect(w, r, "/dashboard?error=Link+not+found", http.StatusSeeOther)
+		return
+	}
+
+	if err := database.DeleteLink(id); err != nil {
+		http.Redirect(w, r, "/dashboard?error=Failed+to+delete+link", http.StatusSeeOther)
+		return
+	}
+
+	http.Redirect(w, r, "/dashboard?success=Link+deleted+successfully", http.StatusSeeOther)
+}
