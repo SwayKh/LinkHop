@@ -26,6 +26,7 @@ func main() {
 	mux := http.NewServeMux()
 
 	// Public routes
+	mux.HandleFunc("GET /favicon.ico", render.Favicon)
 	mux.HandleFunc("GET /{$}", handlers.IndexHandler)
 	mux.HandleFunc("GET /signup", handlers.SignupHandler)
 	mux.HandleFunc("POST /signup", handlers.SignupHandler)

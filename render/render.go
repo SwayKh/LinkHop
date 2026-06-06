@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-//go:embed templates/*.html
+//go:embed templates/*.html static/*
 var templateFS embed.FS
 
 var templates map[string]*template.Template
@@ -53,6 +53,16 @@ func Load() {
 		templates[name] = tmpl
 	}
 	log.Println("Templates loaded")
+}
+
+func Favicon(w http.ResponseWriter, r *http.Request) {
+	data, err := templateFS.ReadFile("static/favicon.svg")
+	if err != nil {
+		http.Error(w, "Not found", http.StatusNotFound)
+		return
+	}
+	w.Header().Set("Content-Type", "image/svg+xml")
+	w.Write(data)
 }
 
 func Template(w http.ResponseWriter, name string, data *Data) {
