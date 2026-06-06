@@ -12,6 +12,20 @@ import (
 	"urlshortner/render"
 )
 
+const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+
+func generateShortCode() (string, error) {
+	code := make([]byte, 6)
+	for i := range code {
+		n, err := rand.Int(rand.Reader, big.NewInt(int64(len(charset))))
+		if err != nil {
+			return "", err
+		}
+		code[i] = charset[n.Int64()]
+	}
+	return string(code), nil
+}
+
 func IndexHandler(w http.ResponseWriter, r *http.Request) {
 	cookie, err := r.Cookie("token")
 	if err == nil && cookie.Value != "" {
@@ -54,3 +68,51 @@ func DashboardHandler(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func CreateLinkHandler(w http.ResponseWriter, r *http.Request) {
+	userID := middleware.GetUserID(r)
+
+	if r.Method == "GET" {
+		render.Template(w, "create", &render.Data{
+			User: &render.UserInfo{ID: userID, Email: middleware.GetUserEmail(r)},
+		})
+		return
+	}
+
+	originalURL := strings.TrimSpace(r.FormValue("original_url"))
+	customAlias := strings.TrimSpace(r.FormValue("custom_alias"))
+
+	if originalURL == "" {
+		render.Template(w, "create", &render.Data{
+			User:  &render.UserInfo{ID: userID, Email: middleware.GetUserEmail(r)},
+			Error: "Original URL is required",
+		})
+		return
+	}
+
+	if !strings.HasPrefix(originalURL, "http://") && !strings.HasPrefix(originalURL, "https://") {
+		originalURL = "https://" + originalURL
+	}
+
+	shortCode := customAlias
+	if shortCode == "" {
+		var err error
+		shortCode, err = generateShortCode()
+		if err != nil {
+			render.Template(w, "create", &render.Data{
+				User:  &render.UserInfo{ID: userID, Email: middleware.GetUserEmail(r)},
+				Error: "Failed to generate short code",
+			})
+			return
+		}
+	}
+
+	if err := database.CreateLink(userID, originalURL, shortCode, customAlias); err != nil {
+		render.Template(w, "create", &render.Data{
+			User:  &render.UserInfo{ID: userID, Email: middleware.GetUserEmail(r)},
+			Error: "Custom alias already taken or failed to create link",
+		})
+		return
+	}
+
+	http.Redirect(w, r, "/dashboard?success=Link+created+successfully", http.StatusSeeOther)
+}
