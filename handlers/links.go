@@ -116,6 +116,79 @@ func CreateLinkHandler(w http.ResponseWriter, r *http.Request) {
 
 	http.Redirect(w, r, "/dashboard?success=Link+created+successfully", http.StatusSeeOther)
 }
+
+func EditLinkHandler(w http.ResponseWriter, r *http.Request) {
+	userID := middleware.GetUserID(r)
+	idStr := r.PathValue("id")
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+
+	link, err := database.GetLinkByID(id)
+	if err != nil || link.UserID != userID {
+		render.Template(w, "edit", &render.Data{
+			User:  &render.UserInfo{ID: userID, Email: middleware.GetUserEmail(r)},
+			Error: "Link not found",
+		})
+		return
+	}
+
+	render.Template(w, "edit", &render.Data{
+		User: &render.UserInfo{ID: userID, Email: middleware.GetUserEmail(r)},
+		Link: &render.LinkInfo{
+			ID:          link.ID,
+			OriginalURL: link.OriginalURL,
+			ShortCode:   link.ShortCode,
+			CustomAlias: link.CustomAlias,
+		},
+	})
+}
+
+func UpdateLinkHandler(w http.ResponseWriter, r *http.Request) {
+	userID := middleware.GetUserID(r)
+	idStr := r.PathValue("id")
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+
+	link, err := database.GetLinkByID(id)
+	if err != nil || link.UserID != userID {
+		http.Redirect(w, r, "/dashboard?error=Link+not+found", http.StatusSeeOther)
+		return
+	}
+
+	originalURL := strings.TrimSpace(r.FormValue("original_url"))
+	customAlias := strings.TrimSpace(r.FormValue("custom_alias"))
+
+	if originalURL == "" {
+		render.Template(w, "edit", &render.Data{
+			User:  &render.UserInfo{ID: userID, Email: middleware.GetUserEmail(r)},
+			Link:  &render.LinkInfo{ID: id, OriginalURL: originalURL, CustomAlias: customAlias},
+			Error: "Original URL is required",
+		})
+		return
+	}
+
+	if !strings.HasPrefix(originalURL, "http://") && !strings.HasPrefix(originalURL, "https://") {
+		originalURL = "https://" + originalURL
+	}
+
+	if err := database.UpdateLink(id, originalURL, customAlias); err != nil {
+		render.Template(w, "edit", &render.Data{
+			User:  &render.UserInfo{ID: userID, Email: middleware.GetUserEmail(r)},
+			Link:  &render.LinkInfo{ID: id, OriginalURL: originalURL, CustomAlias: customAlias},
+			Error: "Failed to update link",
+		})
+		return
+	}
+
+	http.Redirect(w, r, "/dashboard?success=Link+updated+successfully", http.StatusSeeOther)
+}
+
 func DeleteLinkHandler(w http.ResponseWriter, r *http.Request) {
 	userID := middleware.GetUserID(r)
 	idStr := r.PathValue("id")
