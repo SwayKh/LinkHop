@@ -36,14 +36,13 @@ Set these environment variables before running:
 | `DB_PATH` | `./urlshortner.db` | Path to the SQLite database file |
 | `COOKIE_SECURE` | `false` | Set to `true` when behind HTTPS |
 
-Create a `.env` file in the project root (auto-loaded on startup):
+Copy `.env.example` to `.env` in the project root (auto-loaded on startup):
 
+```bash
+cp .env.example .env
 ```
-PORT=8080
-JWT_SECRET=put-a-random-string-here
-DB_PATH=./urlshortner.db
-COOKIE_SECURE=false
-```
+
+Edit `.env` to set your own `JWT_SECRET`.
 
 ## Routes
 
