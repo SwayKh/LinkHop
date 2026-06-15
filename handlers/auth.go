@@ -51,29 +51,52 @@ func SignupHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := database.CreateUser(email, username, string(hash)); err != nil {
-		render.Template(w, "signup", &render.Data{Error: "Email or username already taken"})
+	existing, _ := database.GetUserByEmail(email)
+	if existing != nil {
+		if existing.IsVerified {
+			render.Template(w, "signup", &render.Data{Error: "Email already registered. Please login."})
+			return
+		}
+		if err := sendOTPAndRedirect(w, r, email); err != nil {
+			log.Printf("Failed to resend OTP to %s: %v", email, err)
+			render.Template(w, "signup", &render.Data{Error: "Failed to send verification email"})
+		}
 		return
 	}
 
+	if existing, _ = database.GetUserByUsername(username); existing != nil {
+		render.Template(w, "signup", &render.Data{Error: "Username already taken"})
+		return
+	}
+
+	if err := database.CreateUser(email, username, string(hash)); err != nil {
+		log.Printf("CreateUser error: %v", err)
+		render.Template(w, "signup", &render.Data{Error: "Could not create account"})
+		return
+	}
+
+	if err := sendOTPAndRedirect(w, r, email); err != nil {
+		log.Printf("Failed to send OTP to %s: %v", email, err)
+		render.Template(w, "signup", &render.Data{Error: "Failed to send verification email"})
+	}
+}
+
+func sendOTPAndRedirect(w http.ResponseWriter, r *http.Request, email string) error {
 	otp, err := generateOTP()
 	if err != nil {
-		render.Template(w, "signup", &render.Data{Error: "Failed to generate verification code"})
-		return
+		return err
 	}
 
 	if err := database.CreateVerificationCode(email, otp, time.Now().Add(15*time.Minute)); err != nil {
-		render.Template(w, "signup", &render.Data{Error: "Failed to create verification code"})
-		return
+		return err
 	}
 
 	if err := emailpkg.SendOTP(email, otp); err != nil {
-		log.Printf("Failed to send OTP to %s: %v", email, err)
-		render.Template(w, "signup", &render.Data{Error: "Failed to send verification email"})
-		return
+		return err
 	}
 
 	http.Redirect(w, r, "/verify?email="+email, http.StatusSeeOther)
+	return nil
 }
 
 func VerifyHandler(w http.ResponseWriter, r *http.Request) {
