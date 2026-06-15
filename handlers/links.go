@@ -40,7 +40,7 @@ func DashboardHandler(w http.ResponseWriter, r *http.Request) {
 	links, err := database.GetLinksByUserID(userID)
 	if err != nil {
 		render.Template(w, "dashboard", &render.Data{
-			User:  &render.UserInfo{ID: userID, Email: middleware.GetUserEmail(r)},
+			User:  &render.UserInfo{ID: userID, Email: middleware.GetUserEmail(r), Username: middleware.GetUsername(r)},
 			Error: "Failed to load links",
 		})
 		return
@@ -61,7 +61,7 @@ func DashboardHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	render.Template(w, "dashboard", &render.Data{
-		User:    &render.UserInfo{ID: userID, Email: middleware.GetUserEmail(r)},
+		User:    &render.UserInfo{ID: userID, Email: middleware.GetUserEmail(r), Username: middleware.GetUsername(r)},
 		Links:   linkInfos,
 		Success: r.URL.Query().Get("success"),
 		Error:   r.URL.Query().Get("error"),
@@ -73,7 +73,7 @@ func CreateLinkHandler(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method == "GET" {
 		render.Template(w, "create", &render.Data{
-			User: &render.UserInfo{ID: userID, Email: middleware.GetUserEmail(r)},
+			User: &render.UserInfo{ID: userID, Email: middleware.GetUserEmail(r), Username: middleware.GetUsername(r)},
 		})
 		return
 	}
@@ -83,7 +83,7 @@ func CreateLinkHandler(w http.ResponseWriter, r *http.Request) {
 
 	if originalURL == "" {
 		render.Template(w, "create", &render.Data{
-			User:  &render.UserInfo{ID: userID, Email: middleware.GetUserEmail(r)},
+			User:  &render.UserInfo{ID: userID, Email: middleware.GetUserEmail(r), Username: middleware.GetUsername(r)},
 			Error: "Original URL is required",
 		})
 		return
@@ -99,7 +99,7 @@ func CreateLinkHandler(w http.ResponseWriter, r *http.Request) {
 		shortCode, err = generateShortCode()
 		if err != nil {
 			render.Template(w, "create", &render.Data{
-				User:  &render.UserInfo{ID: userID, Email: middleware.GetUserEmail(r)},
+				User:  &render.UserInfo{ID: userID, Email: middleware.GetUserEmail(r), Username: middleware.GetUsername(r)},
 				Error: "Failed to generate short code",
 			})
 			return
@@ -108,7 +108,7 @@ func CreateLinkHandler(w http.ResponseWriter, r *http.Request) {
 
 	if err := database.CreateLink(userID, originalURL, shortCode, customAlias); err != nil {
 		render.Template(w, "create", &render.Data{
-			User:  &render.UserInfo{ID: userID, Email: middleware.GetUserEmail(r)},
+			User:  &render.UserInfo{ID: userID, Email: middleware.GetUserEmail(r), Username: middleware.GetUsername(r)},
 			Error: "Custom alias already taken or failed to create link",
 		})
 		return
@@ -129,14 +129,14 @@ func EditLinkHandler(w http.ResponseWriter, r *http.Request) {
 	link, err := database.GetLinkByID(id)
 	if err != nil || link.UserID != userID {
 		render.Template(w, "edit", &render.Data{
-			User:  &render.UserInfo{ID: userID, Email: middleware.GetUserEmail(r)},
+			User:  &render.UserInfo{ID: userID, Email: middleware.GetUserEmail(r), Username: middleware.GetUsername(r)},
 			Error: "Link not found",
 		})
 		return
 	}
 
 	render.Template(w, "edit", &render.Data{
-		User: &render.UserInfo{ID: userID, Email: middleware.GetUserEmail(r)},
+		User: &render.UserInfo{ID: userID, Email: middleware.GetUserEmail(r), Username: middleware.GetUsername(r)},
 		Link: &render.LinkInfo{
 			ID:          link.ID,
 			OriginalURL: link.OriginalURL,
@@ -166,7 +166,7 @@ func UpdateLinkHandler(w http.ResponseWriter, r *http.Request) {
 
 	if originalURL == "" {
 		render.Template(w, "edit", &render.Data{
-			User:  &render.UserInfo{ID: userID, Email: middleware.GetUserEmail(r)},
+			User:  &render.UserInfo{ID: userID, Email: middleware.GetUserEmail(r), Username: middleware.GetUsername(r)},
 			Link:  &render.LinkInfo{ID: id, OriginalURL: originalURL, CustomAlias: customAlias},
 			Error: "Original URL is required",
 		})
@@ -179,7 +179,7 @@ func UpdateLinkHandler(w http.ResponseWriter, r *http.Request) {
 
 	if err := database.UpdateLink(id, originalURL, customAlias); err != nil {
 		render.Template(w, "edit", &render.Data{
-			User:  &render.UserInfo{ID: userID, Email: middleware.GetUserEmail(r)},
+			User:  &render.UserInfo{ID: userID, Email: middleware.GetUserEmail(r), Username: middleware.GetUsername(r)},
 			Link:  &render.LinkInfo{ID: id, OriginalURL: originalURL, CustomAlias: customAlias},
 			Error: "Failed to update link",
 		})
@@ -238,14 +238,14 @@ func AnalyticsHandler(w http.ResponseWriter, r *http.Request) {
 	link, err := database.GetLinkByID(id)
 	if err != nil || link.UserID != userID {
 		render.Template(w, "analytics", &render.Data{
-			User:  &render.UserInfo{ID: userID, Email: middleware.GetUserEmail(r)},
+			User:  &render.UserInfo{ID: userID, Email: middleware.GetUserEmail(r), Username: middleware.GetUsername(r)},
 			Error: "Link not found",
 		})
 		return
 	}
 
 	render.Template(w, "analytics", &render.Data{
-		User: &render.UserInfo{ID: userID, Email: middleware.GetUserEmail(r)},
+		User: &render.UserInfo{ID: userID, Email: middleware.GetUserEmail(r), Username: middleware.GetUsername(r)},
 		Link: &render.LinkInfo{
 			ID:           link.ID,
 			OriginalURL:  link.OriginalURL,
