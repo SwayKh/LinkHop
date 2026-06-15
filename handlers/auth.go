@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"crypto/rand"
+	"log"
 	"math/big"
 	"net/http"
 	"os"
@@ -67,6 +68,7 @@ func SignupHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := emailpkg.SendOTP(email, otp); err != nil {
+		log.Printf("Failed to send OTP to %s: %v", email, err)
 		render.Template(w, "signup", &render.Data{Error: "Failed to send verification email"})
 		return
 	}

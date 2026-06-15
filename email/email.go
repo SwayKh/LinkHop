@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -14,6 +15,12 @@ type resendPayload struct {
 	To      string `json:"to"`
 	Subject string `json:"subject"`
 	Text    string `json:"text"`
+}
+
+type resendError struct {
+	StatusCode int    `json:"statusCode"`
+	Name       string `json:"name"`
+	Message    string `json:"message"`
 }
 
 func SendOTP(to, code string) error {
@@ -42,12 +49,13 @@ func SendOTP(to, code string) error {
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return err
+		return fmt.Errorf("resend request failed: %w", err)
 	}
-	resp.Body.Close()
+	defer resp.Body.Close()
 
 	if resp.StatusCode >= 400 {
-		return fmt.Errorf("resend API error: %s", resp.Status)
+		respBody, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("resend API error (%d): %s", resp.StatusCode, string(respBody))
 	}
 	return nil
 }
