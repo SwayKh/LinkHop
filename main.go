@@ -33,6 +33,9 @@ func main() {
 	mux.HandleFunc("GET /login", handlers.LoginHandler)
 	mux.HandleFunc("POST /login", handlers.LoginHandler)
 	mux.HandleFunc("POST /logout", handlers.LogoutHandler)
+	mux.HandleFunc("GET /verify", handlers.VerifyHandler)
+	mux.HandleFunc("POST /verify", handlers.VerifyHandler)
+	mux.HandleFunc("POST /resend-otp", handlers.ResendOTPHandler)
 
 	// Protected routes
 	mux.Handle("GET /dashboard", auth(handlers.DashboardHandler))
