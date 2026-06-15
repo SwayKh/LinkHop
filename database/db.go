@@ -35,7 +35,9 @@ func createTables() {
 	CREATE TABLE IF NOT EXISTS users (
 		id SERIAL PRIMARY KEY,
 		email TEXT UNIQUE NOT NULL,
+		username TEXT UNIQUE NOT NULL,
 		password_hash TEXT NOT NULL,
+		is_verified BOOLEAN DEFAULT FALSE,
 		created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 	);
 
@@ -51,6 +53,15 @@ func createTables() {
 		updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 	);
 
+	CREATE TABLE IF NOT EXISTS verification_codes (
+		id SERIAL PRIMARY KEY,
+		email TEXT NOT NULL,
+		code TEXT NOT NULL,
+		expires_at TIMESTAMPTZ NOT NULL,
+		used BOOLEAN DEFAULT FALSE,
+		created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+	);
+
 	CREATE INDEX IF NOT EXISTS idx_links_short_code ON links(short_code);
 	CREATE INDEX IF NOT EXISTS idx_links_user_id ON links(user_id);
 	`
@@ -58,4 +69,7 @@ func createTables() {
 	if _, err := DB.Exec(queries); err != nil {
 		log.Fatal(err)
 	}
+
+	DB.Exec("ALTER TABLE users ADD COLUMN IF NOT EXISTS username TEXT UNIQUE")
+	DB.Exec("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_verified BOOLEAN DEFAULT FALSE")
 }
