@@ -1,16 +1,33 @@
 package handlers
 
 import (
+	"crypto/rand"
+	"math/big"
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"urlshortner/database"
 	"urlshortner/middleware"
 	"urlshortner/render"
 
 	"golang.org/x/crypto/bcrypt"
+
+	emailpkg "urlshortner/email"
 )
+
+func generateOTP() (string, error) {
+	code := make([]byte, 6)
+	for i := range code {
+		n, err := rand.Int(rand.Reader, big.NewInt(10))
+		if err != nil {
+			return "", err
+		}
+		code[i] = byte('0') + byte(n.Int64())
+	}
+	return string(code), nil
+}
 
 func SignupHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "GET" {
@@ -19,10 +36,11 @@ func SignupHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	email := strings.TrimSpace(r.FormValue("email"))
+	username := strings.TrimSpace(r.FormValue("username"))
 	password := r.FormValue("password")
 
-	if email == "" || password == "" {
-		render.Template(w, "signup", &render.Data{Error: "Email and password are required"})
+	if email == "" || username == "" || password == "" {
+		render.Template(w, "signup", &render.Data{Error: "All fields are required"})
 		return
 	}
 
@@ -32,12 +50,67 @@ func SignupHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := database.CreateUser(email, string(hash)); err != nil {
-		render.Template(w, "signup", &render.Data{Error: "Could not create account"})
+	if err := database.CreateUser(email, username, string(hash)); err != nil {
+		render.Template(w, "signup", &render.Data{Error: "Email or username already taken"})
 		return
 	}
 
-	http.Redirect(w, r, "/login?success=Account+created+successfully", http.StatusSeeOther)
+	otp, err := generateOTP()
+	if err != nil {
+		render.Template(w, "signup", &render.Data{Error: "Failed to generate verification code"})
+		return
+	}
+
+	if err := database.CreateVerificationCode(email, otp, time.Now().Add(15*time.Minute)); err != nil {
+		render.Template(w, "signup", &render.Data{Error: "Failed to create verification code"})
+		return
+	}
+
+	if err := emailpkg.SendOTP(email, otp); err != nil {
+		render.Template(w, "signup", &render.Data{Error: "Failed to send verification email"})
+		return
+	}
+
+	http.Redirect(w, r, "/verify?email="+email, http.StatusSeeOther)
+}
+
+func VerifyHandler(w http.ResponseWriter, r *http.Request) {
+	email := r.URL.Query().Get("email")
+
+	if r.Method == "GET" {
+		if email == "" {
+			http.Redirect(w, r, "/signup", http.StatusSeeOther)
+			return
+		}
+		render.Template(w, "verify", &render.Data{FormEmail: email})
+		return
+	}
+
+	code := strings.TrimSpace(r.FormValue("code"))
+	email = strings.TrimSpace(r.FormValue("email"))
+
+	if email == "" || code == "" {
+		render.Template(w, "verify", &render.Data{FormEmail: email, Error: "Code is required"})
+		return
+	}
+
+	vc, err := database.GetValidVerificationCode(email, code)
+	if err != nil {
+		render.Template(w, "verify", &render.Data{FormEmail: email, Error: "Invalid or expired code"})
+		return
+	}
+
+	if err := database.MarkVerificationCodeUsed(vc.ID); err != nil {
+		render.Template(w, "verify", &render.Data{FormEmail: email, Error: "Failed to verify code"})
+		return
+	}
+
+	if err := database.SetUserVerified(email); err != nil {
+		render.Template(w, "verify", &render.Data{FormEmail: email, Error: "Failed to verify account"})
+		return
+	}
+
+	http.Redirect(w, r, "/login?success=Email+verified+successfully", http.StatusSeeOther)
 }
 
 func LoginHandler(w http.ResponseWriter, r *http.Request) {
@@ -47,26 +120,39 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	email := strings.TrimSpace(r.FormValue("email"))
+	login := strings.TrimSpace(r.FormValue("login"))
 	password := r.FormValue("password")
 
-	if email == "" || password == "" {
-		render.Template(w, "login", &render.Data{Error: "Email and password are required"})
+	if login == "" || password == "" {
+		render.Template(w, "login", &render.Data{Error: "Email or username and password are required"})
 		return
 	}
 
-	user, err := database.GetUserByEmail(email)
+	var user *database.User
+	var err error
+
+	if strings.Contains(login, "@") {
+		user, err = database.GetUserByEmail(login)
+	} else {
+		user, err = database.GetUserByUsername(login)
+	}
+
 	if err != nil {
-		render.Template(w, "login", &render.Data{Error: "Invalid email or password"})
+		render.Template(w, "login", &render.Data{Error: "Invalid email/username or password"})
 		return
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password)); err != nil {
-		render.Template(w, "login", &render.Data{Error: "Invalid email or password"})
+		render.Template(w, "login", &render.Data{Error: "Invalid email/username or password"})
 		return
 	}
 
-	token, err := middleware.GenerateToken(user.ID, user.Email)
+	if !user.IsVerified {
+		http.Redirect(w, r, "/verify?email="+user.Email, http.StatusSeeOther)
+		return
+	}
+
+	token, err := middleware.GenerateToken(user.ID, user.Email, user.Username)
 	if err != nil {
 		render.Template(w, "login", &render.Data{Error: "Failed to create session"})
 		return
@@ -100,4 +186,30 @@ func LogoutHandler(w http.ResponseWriter, r *http.Request) {
 		MaxAge:   -1,
 	})
 	http.Redirect(w, r, "/login", http.StatusSeeOther)
+}
+
+func ResendOTPHandler(w http.ResponseWriter, r *http.Request) {
+	email := strings.TrimSpace(r.FormValue("email"))
+	if email == "" {
+		http.Redirect(w, r, "/signup", http.StatusSeeOther)
+		return
+	}
+
+	otp, err := generateOTP()
+	if err != nil {
+		http.Redirect(w, r, "/verify?email="+email+"&error=Failed+to+generate+code", http.StatusSeeOther)
+		return
+	}
+
+	if err := database.CreateVerificationCode(email, otp, time.Now().Add(15*time.Minute)); err != nil {
+		http.Redirect(w, r, "/verify?email="+email+"&error=Failed+to+create+code", http.StatusSeeOther)
+		return
+	}
+
+	if err := emailpkg.SendOTP(email, otp); err != nil {
+		http.Redirect(w, r, "/verify?email="+email+"&error=Failed+to+send+email", http.StatusSeeOther)
+		return
+	}
+
+	http.Redirect(w, r, "/verify?email="+email+"&success=Code+resent", http.StatusSeeOther)
 }
