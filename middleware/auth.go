@@ -21,17 +21,20 @@ type contextKey string
 
 const UserIDKey contextKey = "userID"
 const UserEmailKey contextKey = "userEmail"
+const UsernameKey contextKey = "username"
 
 type Claims struct {
-	UserID int64  `json:"user_id"`
-	Email  string `json:"email"`
+	UserID   int64  `json:"user_id"`
+	Email    string `json:"email"`
+	Username string `json:"username"`
 	jwt.RegisteredClaims
 }
 
-func GenerateToken(userID int64, email string) (string, error) {
+func GenerateToken(userID int64, email, username string) (string, error) {
 	claims := &Claims{
-		UserID: userID,
-		Email:  email,
+		UserID:   userID,
+		Email:    email,
+		Username: username,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
@@ -64,6 +67,7 @@ func AuthMiddleware(next http.Handler) http.Handler {
 
 		ctx := context.WithValue(r.Context(), UserIDKey, claims.UserID)
 		ctx = context.WithValue(ctx, UserEmailKey, claims.Email)
+		ctx = context.WithValue(ctx, UsernameKey, claims.Username)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
@@ -76,4 +80,9 @@ func GetUserID(r *http.Request) int64 {
 func GetUserEmail(r *http.Request) string {
 	email, _ := r.Context().Value(UserEmailKey).(string)
 	return email
+}
+
+func GetUsername(r *http.Request) string {
+	username, _ := r.Context().Value(UsernameKey).(string)
+	return username
 }
