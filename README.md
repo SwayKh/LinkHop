@@ -50,11 +50,8 @@ Open http://localhost:8080 in your browser.
 | `JWT_SECRET` | `urlshortner-dev-secret-key` | Secret key for signing auth tokens. **Set a random value in production.** |
 | `DATABASE_URL` | `postgres://postgres:postgres@localhost:5432/urlshortner?sslmode=disable` | PostgreSQL connection string |
 | `COOKIE_SECURE` | `false` | Set to `true` when behind HTTPS |
-| `SMTP_HOST` | (empty) | SMTP server for sending OTP emails. Leave empty to log codes to console (dev mode). |
-| `SMTP_PORT` | `587` | SMTP port |
-| `SMTP_USER` | (empty) | SMTP username |
-| `SMTP_PASS` | (empty) | SMTP password |
-| `SMTP_FROM` | (empty) | From address for emails (defaults to SMTP_USER) |
+| `RESEND_API_KEY` | (empty) | Resend API key for sending OTP emails. Leave empty to log codes to console (dev mode). |
+| `EMAIL_FROM` | `onboarding@resend.dev` | From address for verification emails |
 
 The `DATABASE_URL` format is:
 
