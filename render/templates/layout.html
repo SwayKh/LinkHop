@@ -23,7 +23,10 @@
                 </div>
                 <div class="flex items-center space-x-4">
                     {{if .User}}
-                    <span class="text-sm text-gray-500">{{.User.Email}}</span>
+                    <span class="text-sm text-gray-500">{{.User.Username}}</span>
+                    {{if not .User.IsVerified}}
+                    <a href="/verify?email={{.User.Email}}" class="text-xs text-yellow-600 hover:text-yellow-800">(unverified)</a>
+                    {{end}}
                     <form action="/logout" method="POST" class="inline">
                         <button type="submit" class="text-sm text-red-600 hover:text-red-800">Logout</button>
                     </form>
