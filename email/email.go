@@ -1,31 +1,53 @@
 package email
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"log"
-	"net/smtp"
+	"net/http"
 	"os"
 )
 
+type resendPayload struct {
+	From    string `json:"from"`
+	To      string `json:"to"`
+	Subject string `json:"subject"`
+	Text    string `json:"text"`
+}
+
 func SendOTP(to, code string) error {
-	host := os.Getenv("SMTP_HOST")
-	if host == "" {
+	apiKey := os.Getenv("RESEND_API_KEY")
+	if apiKey == "" {
 		log.Printf("[EMAIL] OTP for %s: %s", to, code)
 		return nil
 	}
 
-	port := os.Getenv("SMTP_PORT")
-	user := os.Getenv("SMTP_USER")
-	pass := os.Getenv("SMTP_PASS")
-	from := os.Getenv("SMTP_FROM")
+	from := os.Getenv("EMAIL_FROM")
 	if from == "" {
-		from = user
+		from = "onboarding@resend.dev"
 	}
 
-	body := fmt.Sprintf("From: %s\r\nTo: %s\r\nSubject: Your URL Shortener Verification Code\r\nContent-Type: text/plain; charset=\"utf-8\"\r\n\r\nYour verification code is: %s\r\n\r\nThis code expires in 15 minutes.\r\n", from, to, code)
+	body := resendPayload{
+		From:    from,
+		To:      to,
+		Subject: "Your URL Shortener Verification Code",
+		Text:    fmt.Sprintf("Your verification code is: %s\n\nThis code expires in 15 minutes.", code),
+	}
 
-	addr := host + ":" + port
-	auth := smtp.PlainAuth("", user, pass, host)
+	data, _ := json.Marshal(body)
+	req, _ := http.NewRequest("POST", "https://api.resend.com/emails", bytes.NewReader(data))
+	req.Header.Set("Authorization", "Bearer "+apiKey)
+	req.Header.Set("Content-Type", "application/json")
 
-	return smtp.SendMail(addr, auth, from, []string{to}, []byte(body))
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
+	}
+	resp.Body.Close()
+
+	if resp.StatusCode >= 400 {
+		return fmt.Errorf("resend API error: %s", resp.Status)
+	}
+	return nil
 }
