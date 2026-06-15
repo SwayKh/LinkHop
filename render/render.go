@@ -14,16 +14,19 @@ var templateFS embed.FS
 var templates map[string]*template.Template
 
 type Data struct {
-	User    *UserInfo
-	Error   string
-	Success string
-	Links   []LinkInfo
-	Link    *LinkInfo
+	User      *UserInfo
+	Error     string
+	Success   string
+	Links     []LinkInfo
+	Link      *LinkInfo
+	FormEmail string
 }
 
 type UserInfo struct {
-	ID    int64
-	Email string
+	ID         int64
+	Email      string
+	Username   string
+	IsVerified bool
 }
 
 type LinkInfo struct {
